@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>쇼핑 앱 푸시 알림 사용자 설문</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F5F4F1; min-height: 100vh; padding: 2rem 1rem 4rem; }
+.wrap { max-width: 560px; margin: 0 auto; }
+.page { display: none; }
+.page.active { display: block; }
+
+/* 표지 */
+.cover-card { background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 20px; overflow: hidden; box-shadow: 0 2px 20px rgba(0,0,0,0.07); }
+.cover-top { background: #534AB7; padding: 3rem 2.5rem 2.5rem; text-align: center; }
+.cover-icon { width: 64px; height: 64px; border-radius: 18px; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 28px; }
+.cover-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: rgba(255,255,255,0.6); text-transform: uppercase; margin-bottom: 12px; }
+.cover-title { font-size: 24px; font-weight: 700; color: #fff; line-height: 1.35; margin-bottom: 10px; }
+.cover-subtitle { font-size: 14px; color: rgba(255,255,255,0.7); line-height: 1.6; }
+.cover-body { padding: 2rem 2.5rem; }
+.cover-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.75rem; }
+.cover-info-item { background: #F5F4F1; border-radius: 10px; padding: 14px 16px; }
+.cover-info-label { font-size: 11px; color: #A09E98; font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+.cover-info-value { font-size: 14px; font-weight: 600; color: #1A1917; }
+.cover-notice { background: #EEEDFE; border-radius: 10px; padding: 14px 16px; font-size: 13px; color: #534AB7; line-height: 1.6; margin-bottom: 1.75rem; }
+.btn-start { width: 100%; padding: 14px; background: #534AB7; color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; font-family: inherit; cursor: pointer; transition: opacity 0.15s; margin-bottom: 10px; }
+.btn-start:hover { opacity: 0.88; }
+.btn-researcher { width: 100%; padding: 11px; background: none; color: #A09E98; border: 1px solid rgba(0,0,0,0.1); border-radius: 12px; font-size: 13px; font-family: inherit; cursor: pointer; }
+.btn-researcher:hover { background: #F5F4F1; color: #6B6A66; }
+
+/* 설문 카드 공통 */
+.survey-card { background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 20px; overflow: hidden; box-shadow: 0 2px 20px rgba(0,0,0,0.07); }
+.sec-header { padding: 1.25rem 2rem 1rem; border-bottom: 1px solid rgba(0,0,0,0.07); }
+.sec-badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 99px; margin-bottom: 6px; }
+.badge-basic   { background: #E6F1FB; color: #185FA5; border: 1px solid #85B7EB; }
+.badge-main    { background: #EEEDFE; color: #534AB7; border: 1px solid #AFA9EC; }
+.badge-exp     { background: #FBEAF0; color: #993556; border: 1px solid #ED93B1; }
+.badge-closing { background: #FAEEDA; color: #854F0B; border: 1px solid #EF9F27; }
+.sec-title { font-size: 15px; font-weight: 700; color: #1A1917; }
+.sec-desc  { font-size: 12px; color: #6B6A66; margin-top: 2px; }
+
+/* 진행바 */
+.prog-row { display: flex; align-items: center; gap: 6px; padding: 0.9rem 2rem; border-bottom: 1px solid rgba(0,0,0,0.07); background: #F5F4F1; }
+.prog-seg { height: 4px; border-radius: 99px; background: rgba(0,0,0,0.1); overflow: hidden; flex-shrink: 0; }
+.prog-fill { height: 100%; border-radius: 99px; transition: width 0.35s ease; }
+.fill-blue   { background: #378ADD; }
+.fill-purple { background: #534AB7; }
+.fill-pink   { background: #D4537E; }
+.fill-amber  { background: #BA7517; }
+.prog-sep   { font-size: 11px; color: #A09E98; flex-shrink: 0; }
+.prog-label { font-size: 11px; color: #A09E98; white-space: nowrap; margin-left: 4px; }
+
+/* 본문 */
+.card-body { padding: 1.75rem 2rem; }
+.q-text { font-size: 17px; font-weight: 700; color: #1A1917; line-height: 1.5; margin-bottom: 6px; }
+.q-sub  { font-size: 13px; color: #6B6A66; margin-bottom: 1.25rem; line-height: 1.5; }
+.q-hint { font-size: 12px; color: #A09E98; margin-bottom: 1.25rem; }
+.option-list { display: flex; flex-direction: column; gap: 9px; }
+
+/* 선택 버튼 */
+.option-btn {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; border: 1.5px solid rgba(0,0,0,0.12);
+  border-radius: 10px; background: #fff;
+  cursor: pointer; font-size: 14px; color: #1A1917;
+  text-align: left; width: 100%; font-family: inherit;
+  transition: background 0.12s, border-color 0.12s;
+}
+.option-btn:hover:not(.on-blue):not(.on-purple):not(.on-pink):not(.on-amber) { background: #F5F4F1; }
+.option-btn.on-blue   { background: #E6F1FB; border-color: #378ADD; color: #0C447C; }
+.option-btn.on-purple { background: #EEEDFE; border-color: #7F77DD; color: #3C3489; }
+.option-btn.on-pink   { background: #FBEAF0; border-color: #D4537E; color: #72243E; }
+.option-btn.on-amber  { background: #FAEEDA; border-color: #BA7517; color: #633806; }
+
+.radio-dot { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid rgba(0,0,0,0.2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.on-blue   .radio-dot { border-color: #378ADD; background: #378ADD; }
+.on-purple .radio-dot { border-color: #7F77DD; background: #7F77DD; }
+.on-pink   .radio-dot { border-color: #D4537E; background: #D4537E; }
+.on-amber  .radio-dot { border-color: #BA7517; background: #BA7517; }
+.radio-inner { width: 8px; height: 8px; border-radius: 50%; background: #fff; display: none; }
+.on-blue .radio-inner, .on-purple .radio-inner, .on-pink .radio-inner, .on-amber .radio-inner { display: block; }
+
+.check-box { width: 18px; height: 18px; border-radius: 4px; border: 1.5px solid rgba(0,0,0,0.2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.on-purple .check-box { border-color: #7F77DD; background: #7F77DD; }
+.check-inner { width: 10px; height: 10px; display: none; }
+.on-purple .check-inner { display: block; }
+
+.text-area { width: 100%; padding: 12px 14px; border: 1.5px solid rgba(0,0,0,0.12); border-radius: 10px; background: #F5F4F1; font-size: 14px; color: #1A1917; font-family: inherit; line-height: 1.6; outline: none; transition: border-color 0.15s, background 0.15s; min-height: 100px; resize: vertical; }
+.text-area:focus { border-color: #534AB7; background: #fff; }
+.text-area::placeholder { color: #A09E98; }
+.text-input { width: 100%; padding: 12px 14px; border: 1.5px solid rgba(0,0,0,0.12); border-radius: 10px; background: #F5F4F1; font-size: 14px; color: #1A1917; font-family: inherit; outline: none; transition: border-color 0.15s, background 0.15s; }
+.text-input:focus { border-color: #534AB7; background: #fff; }
+.text-input::placeholder { color: #A09E98; }
+.optional-badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 99px; background: #F0EFE9; color: #A09E98; border: 1px solid rgba(0,0,0,0.1); vertical-align: middle; margin-left: 6px; }
+.optional-note { font-size: 11px; color: #A09E98; margin-top: 8px; }
+.info-box { background: #FAEEDA; border: 1px solid #EF9F27; border-radius: 10px; padding: 12px 14px; font-size: 13px; color: #633806; margin-bottom: 1.25rem; line-height: 1.6; }
+.situation-box { background: #EEEDFE; border-left: 3px solid #534AB7; border-radius: 0 12px 12px 0; padding: 14px 16px; margin-bottom: 1.5rem; font-size: 13px; color: #3C3489; line-height: 1.7; white-space: pre-line; }
+
+/* 아이폰 알림 */
+.iphone-notif-wrap { display: flex; justify-content: center; margin-bottom: 1.5rem; }
+.iphone-notif { width: 100%; max-width: 340px; background: rgba(245,244,241,0.95); border-radius: 16px; padding: 12px 14px; display: flex; gap: 10px; align-items: center; box-shadow: 0 4px 24px rgba(0,0,0,0.13); }
+.iphone-notif.highlighted { border: 1.5px solid #D4537E; }
+.iphone-notif-icon { width: 36px; height: 36px; border-radius: 8px; background: #E53170; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; align-self: center; }ter; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.iphone-notif-content { flex: 1; min-width: 0; }
+.iphone-notif-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; gap: 6px; }
+.iphone-notif-title-wrap { font-size: 13px; font-weight: 700; color: #1A1917; line-height: 1.35; flex: 1; }
+.iphone-notif-app  { display: none; }
+.iphone-notif-time { font-size: 11px; color: #A09E98; flex-shrink: 0; margin-top: 1px; }
+.iphone-notif-body  { font-size: 12px; color: #3A3937; line-height: 1.45; }
+.iphone-notif-unsub { font-size: 12px; color: #1A1917; margin-top: 4px; }
+
+/* 리커트 */
+.likert-block { margin-bottom: 1.4rem; }
+.likert-q { font-size: 14px; font-weight: 600; color: #1A1917; margin-bottom: 10px; line-height: 1.5; }
+.likert-labels-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.likert-end-label { font-size: 11px; color: #A09E98; }
+.likert-btns { display: flex; gap: 6px; }
+.likert-btn { flex: 1; padding: 9px 4px; border-radius: 8px; border: 1.5px solid rgba(0,0,0,0.12); background: #fff; cursor: pointer; font-size: 13px; font-weight: 600; color: #6B6A66; font-family: inherit; transition: all 0.12s; text-align: center; }
+.likert-btn:hover:not(.on) { background: #F5F4F1; }
+.likert-btn.on { background: #D4537E; border-color: #D4537E; color: #fff; }
+
+/* 네비 */
+.nav-row { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 2rem; border-top: 1px solid rgba(0,0,0,0.07); }
+.btn-back { font-size: 13px; color: #6B6A66; background: none; border: none; cursor: pointer; padding: 8px 4px; font-family: inherit; }
+.btn-back:hover { color: #1A1917; }
+.btn-next { font-size: 14px; font-weight: 700; padding: 10px 28px; border-radius: 10px; color: #fff; border: none; cursor: pointer; transition: opacity 0.15s; font-family: inherit; }
+.btn-next:disabled { opacity: 0.35; cursor: default; }
+.btn-next:not(:disabled):hover { opacity: 0.85; }
+.btn-blue   { background: #185FA5; }
+.btn-purple { background: #534AB7; }
+.btn-pink   { background: #993556; }
+.btn-amber  { background: #854F0B; }
+
+/* 완료 */
+.done-card { background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 20px; box-shadow: 0 2px 20px rgba(0,0,0,0.07); text-align: center; padding: 4rem 2rem; }
+.done-icon  { font-size: 52px; margin-bottom: 1rem; }
+.done-title { font-size: 22px; font-weight: 700; color: #1A1917; margin-bottom: 8px; }
+.done-sub   { font-size: 14px; color: #6B6A66; line-height: 1.7; }
+
+/* 리서처 */
+.researcher-card { background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 20px; overflow: hidden; box-shadow: 0 2px 20px rgba(0,0,0,0.07); }
+.researcher-header { background: #1A1917; padding: 1.5rem 2rem; display: flex; align-items: center; justify-content: space-between; }
+.researcher-title { font-size: 16px; font-weight: 700; color: #fff; }
+.researcher-badge { font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 99px; background: #FAEEDA; color: #854F0B; }
+.researcher-body { padding: 1.5rem 2rem; }
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1.5rem; }
+.stat-card { background: #F5F4F1; border-radius: 10px; padding: 14px; text-align: center; }
+.stat-num { font-size: 26px; font-weight: 700; color: #1A1917; }
+.stat-lbl { font-size: 11px; color: #A09E98; margin-top: 3px; }
+.tab-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+.tab-btn { padding: 7px 14px; font-size: 12px; font-weight: 600; font-family: inherit; border: 1px solid rgba(0,0,0,0.12); border-radius: 99px; background: none; color: #6B6A66; cursor: pointer; transition: all 0.12s; }
+.tab-btn.on { background: #1A1917; color: #fff; border-color: #1A1917; }
+.r-lbl { font-size: 11px; font-weight: 700; color: #A09E98; text-transform: uppercase; letter-spacing: 0.07em; margin: 16px 0 8px; }
+.r-lbl:first-child { margin-top: 0; }
+.result-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 4px; }
+.result-table th { text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; color: #A09E98; padding: 8px 6px; border-bottom: 1px solid rgba(0,0,0,0.08); }
+.result-table td { padding: 9px 6px; border-bottom: 1px solid rgba(0,0,0,0.06); color: #3A3937; vertical-align: middle; }
+.result-table tr:last-child td { border-bottom: none; }
+.bar-row { display: flex; align-items: center; gap: 6px; }
+.bar-track { flex: 1; height: 5px; border-radius: 99px; background: rgba(0,0,0,0.08); }
+.bar-fill-el { height: 100%; border-radius: 99px; background: #534AB7; }
+.bar-pct { font-size: 11px; color: #6B6A66; min-width: 32px; text-align: right; }
+.sit-badge { font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 700; white-space: nowrap; }
+.sit-A { background: #E6F1FB; color: #185FA5; }
+.sit-B { background: #E1F5EE; color: #0F6E56; }
+.sit-C { background: #FBEAF0; color: #993556; }
+.sit-D { background: #FAEEDA; color: #854F0B; }
+.resp-item { background: #F5F4F1; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; }
+.resp-meta { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+.resp-detail { font-size: 12px; color: #6B6A66; line-height: 1.7; }
+.divider { height: 1px; background: rgba(0,0,0,0.07); margin: 16px 0; }
+.btn-logout { width: 100%; padding: 11px; background: none; color: #6B6A66; border: 1px solid rgba(0,0,0,0.12); border-radius: 10px; font-size: 13px; font-family: inherit; cursor: pointer; margin-top: 12px; }
+.btn-logout:hover { background: #F5F4F1; }
+.empty-state { font-size: 13px; color: #A09E98; text-align: center; padding: 30px 0; }
+.loading-state { font-size: 13px; color: #A09E98; text-align: center; padding: 20px 0; }
+.login-card { background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 20px; padding: 2rem; box-shadow: 0 2px 20px rgba(0,0,0,0.07); }
+.login-title { font-size: 18px; font-weight: 700; color: #1A1917; margin-bottom: 6px; }
+.login-sub { font-size: 13px; color: #6B6A66; margin-bottom: 1.5rem; }
+.login-error { font-size: 12px; color: #C0392B; margin-top: 6px; display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 표지 -->
+  <div class="page active" id="page-cover">
+    <div class="cover-card">
+      <div class="cover-top">
+        <div class="cover-icon">🛍️</div>
+        <div class="cover-label">Research Survey</div>
+        <div class="cover-title">쇼핑 앱 푸시 알림<br>사용자 설문</div>
+        <div class="cover-subtitle">지그재그·에이블리 이용 10~30대 여성 대상</div>
+      </div>
+      <div class="cover-body">
+        <div class="cover-info-grid">
+          <div class="cover-info-item"><div class="cover-info-label">소요시간</div><div class="cover-info-value">5분 내외</div></div>
+          <div class="cover-info-item"><div class="cover-info-label">총 문항 수</div><div class="cover-info-value">총 14문항</div></div>
+          <div class="cover-info-item"><div class="cover-info-label">구성</div><div class="cover-info-value">4개 파트</div></div>
+          <div class="cover-info-item"><div class="cover-info-label">보상</div><div class="cover-info-value">커피 기프티콘 추첨</div></div>
+        </div>
+        <div class="cover-notice">본 설문은 쇼핑 앱 푸시 알림의 <strong>말투 유형</strong>이 사용자 경험에 미치는 영향을 연구합니다. 수집된 응답은 연구 목적 외에 사용되지 않습니다.</div>
+        <button class="btn-start" onclick="startSurvey()">설문 시작하기 →</button>
+        <button class="btn-researcher" onclick="showPage('page-login')">리서처 로그인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Part 1·2 -->
+  <div class="page" id="page-survey">
+    <div class="survey-card">
+      <div class="sec-header">
+        <div class="sec-badge" id="sec-badge"></div>
+        <div class="sec-title" id="sec-title"></div>
+        <div class="sec-desc"  id="sec-desc"></div>
+      </div>
+      <div class="prog-row" id="prog-row"></div>
+      <div class="card-body" id="card-body"></div>
+      <div class="nav-row">
+        <button class="btn-back" id="btn-back" onclick="goPrev()">← 이전</button>
+        <button class="btn-next" id="btn-next" onclick="goNext()" disabled>다음</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Part 3 실험 -->
+  <div class="page" id="page-exp">
+    <div class="survey-card">
+      <div class="sec-header">
+        <div class="sec-badge badge-exp">말투 평가</div>
+        <div class="sec-title">Part 3. 알림 말투 평가</div>
+        <div class="sec-desc">제시된 상황에서 알림을 보고 평가해 주세요.</div>
+      </div>
+      <div class="prog-row">
+        <div style="flex:1;height:4px;border-radius:99px;background:rgba(0,0,0,0.1);overflow:hidden;">
+          <div class="prog-fill fill-pink" id="exp-prog-fill" style="width:0%"></div>
+        </div>
+        <span class="prog-label" id="exp-prog-label">1 / 6</span>
+      </div>
+      <div class="card-body" id="exp-body"></div>
+      <div class="nav-row">
+        <button class="btn-back" id="exp-btn-back" onclick="expPrev()">← 이전</button>
+        <button class="btn-next btn-pink" id="exp-btn-next" onclick="expNext()" disabled>다음</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Part 4 마무리 -->
+  <div class="page" id="page-closing">
+    <div class="survey-card">
+      <div class="sec-header">
+        <div class="sec-badge badge-closing">마무리</div>
+        <div class="sec-title">Part 4. 마무리</div>
+        <div class="sec-desc">마지막으로 몇 가지만 더 여쭤볼게요.</div>
+      </div>
+      <div class="prog-row">
+        <div style="flex:1;height:4px;border-radius:99px;background:rgba(0,0,0,0.1);overflow:hidden;">
+          <div class="prog-fill fill-amber" id="cl-prog-fill" style="width:0%"></div>
+        </div>
+        <span class="prog-label" id="cl-prog-label">1 / 3</span>
+      </div>
+      <div class="card-body" id="cl-body"></div>
+      <div class="nav-row">
+        <button class="btn-back" id="cl-btn-back" onclick="clPrev()">← 이전</button>
+        <button class="btn-next btn-amber" id="cl-btn-next" onclick="clNext()" disabled>다음</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 완료 -->
+  <div class="page" id="page-done">
+    <div class="done-card">
+      <div class="done-icon">🎉</div>
+      <div class="done-title">설문이 완료되었습니다!</div>
+      <div class="done-sub">소중한 응답 감사드립니다.<br>추첨을 통해 커피 기프티콘을 드립니다.</div>
+    </div>
+  </div>
+
+  <!-- 리서처 로그인 -->
+  <div class="page" id="page-login">
+    <div class="login-card">
+      <div class="login-title">🔒 리서처 로그인</div>
+      <div class="login-sub">비밀번호를 입력해주세요.</div>
+      <input type="password" class="text-input" id="pw-input" placeholder="비밀번호" onkeydown="if(event.key==='Enter')checkPw()" style="margin-bottom:8px"/>
+      <div class="login-error" id="login-error">비밀번호가 틀렸습니다.</div>
+      <button class="btn-start" onclick="checkPw()" style="margin-top:12px;">로그인</button>
+      <button class="btn-researcher" onclick="showPage('page-cover')" style="margin-top:8px;">← 돌아가기</button>
+    </div>
+  </div>
+
+  <!-- 리서처 결과 -->
+  <div class="page" id="page-researcher">
+    <div class="researcher-card">
+      <div class="researcher-header">
+        <span class="researcher-title">📊 설문 결과 대시보드</span>
+        <span class="researcher-badge">RESEARCHER</span>
+      </div>
+      <div class="researcher-body">
+        <div class="stat-grid">
+          <div class="stat-card"><div class="stat-num" id="r-total">-</div><div class="stat-lbl">총 응답</div></div>
+          <div class="stat-card"><div class="stat-num" id="r-interview">-</div><div class="stat-lbl">인터뷰 동의</div></div>
+          <div class="stat-card"><div class="stat-num" id="r-today">-</div><div class="stat-lbl">오늘 응답</div></div>
+        </div>
+        <div class="tab-row">
+          <button class="tab-btn on" onclick="switchTab(this,'overview')">개요</button>
+          <button class="tab-btn" onclick="switchTab(this,'situation')">상황별 리커트</button>
+          <button class="tab-btn" onclick="switchTab(this,'responses')">개별 응답</button>
+        </div>
+        <div id="r-content"><div class="loading-state">데이터 불러오는 중...</div></div>
+        <div class="divider"></div>
+        <button class="btn-logout" onclick="showPage('page-cover')">← 나가기</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Firebase 설정 ──────────────────────────────────────────
+const FB_API_KEY        = 'AIzaSyDmCVLqRdQoQzZVlX6guwWjajDdTtmQ4j0';
+const FB_PROJECT        = 'push-survey2';
+const FB_AUTH_DOMAIN    = 'push-survey2.firebaseapp.com';
+const FB_COL            = 'survey_responses_v2';
+const RESEARCHER_PW = '1234';
+
+// ── 데이터 정의 ────────────────────────────────────────────
+const SITUATIONS = {
+  A: {
+    desc: '평소 자주 이용하는 쇼핑 앱에서 아래와 같은 푸시 알림을 받았습니다.\n현재 앱에서 전 상품 세일 이벤트가 진행 중인 상황입니다.',
+    notifs: [
+      { title:'오늘 자정까지만!!',      body:'(광고) 전 상품 30% 할인, 지금 안 담으면 내일 후회해요. 서두르세요!' },
+      { title:'실화인가요??',           body:'(광고) 오늘 자정까지 무려 전 상품 30% 쿠폰이라니… 지갑 열 준비 되셨죠?' },
+      { title:'S/S 할인 이벤트',        body:'(광고) 오늘 자정까지 전 카테고리 30% 할인이 적용돼요. 확인해보세요!' },
+    ]
+  },
+  B: {
+    desc: '평소 자주 이용하는 쇼핑 앱에서 주문한 상품이 오늘 배송 완료되었습니다.\n아래와 같은 푸시 알림을 받았습니다.',
+    notifs: [
+      { title:'단 하루 남았어요!!',             body:'(광고) 상품은 잘 받으셨나요? 오늘 리뷰를 쓰지 않으면 2,000 포인트가 사라져요.' },
+      { title:'똑똑… 상품 잘 도착했나요?',      body:'(광고)이긴 하지만 리뷰 하나면 저희가 정말 뿌듯할 것 같아요. 포인트 2,000점도 드릴게요.' },
+      { title:'주문하신 상품은 잘 받으셨나요?', body:'(광고) 구매하신 상품의 리뷰를 남겨주시면 포인트 2,000점을 드려요!' },
+    ]
+  },
+  C: {
+    desc: '평소 자주 이용하는 쇼핑 앱에서 매일 출석체크를 하면 포인트를 적립해 주는 이벤트가 진행 중입니다.\n아래와 같은 푸시 알림을 받았습니다.',
+    notifs: [
+      { title:'출석체크 마감까지 얼마 안 남았어요!!',   body:'(광고) 지금 접속해야 포인트 100점을 받아요. 자정이 지나면 사라져요!' },
+      { title:'3일이나 안 오셨어요… 많이 바쁘신가요?', body:'(광고) 오늘 잠깐이라도 들어와 주세요. 100 포인트와 함께 기다릴게요!' },
+      { title:'출석체크하면 포인트 100점이에요.',       body:'(광고) 매일 접속하시면 포인트가 쌓여요! 자정까지 참여 가능해요.' },
+    ]
+  },
+  D: {
+    desc: '평소 자주 이용하는 쇼핑 앱에서 아래와 같은 신발 브랜드 신상품 추천 푸시 알림을 받았습니다.\n특별한 할인이나 이벤트가 없는 일반적인 추천 상황입니다.',
+    notifs: [
+      { title:'뉴발란스 S/S 신상, 놓치면 후회해요!',  body:'(광고) 출시 첫날! 인기 상품은 빠르게 품절돼요. 서둘러 클릭하세요!!' },
+      { title:'뉴발란스 S/S 신상 떴어요, 같이 볼래요?', body:'(광고) 뉴발 신상은 못참지… 지금 바로 확인해보세요!' },
+      { title:'뉴발란스 S/S 컬렉션 업데이트 완료',      body:'(광고) 2026 S/S 신상품이 입고됐어요. 지금 앱에서 확인하세요!' },
+    ]
+  }
+};
+const TONE_LABELS = ['희소성·긴박함','유머·친근함','직접·정보전달'];
+const LIKERT_QS = [
+  { id:'discomfort',   q:'이 푸시 알림을 받았을 때 감정적으로 불쾌함을 느꼈다.' },
+  { id:'positive',     q:'전반적으로 나는 해당 푸시 알림에 대해 긍정적이다.' },
+  { id:'satisfaction', q:'이 푸시 알림의 스타일과 표현 방식이 만족스럽다.' },
+  { id:'continue',     q:'나는 앞으로도 이 쇼핑 앱을 지속적으로 사용할 것이다.' },
+  { id:'revisit',      q:'나는 이 쇼핑 앱을 다시 이용할 것이다.' },
+  { id:'recommend',    q:'나는 이 쇼핑 앱을 다른 사람에게 추천할 의향이 있다.' },
+];
+const PART12 = [
+  {
+    key:'basic', title:'Part 1. 기본 정보', desc:'간단한 인적 사항을 알려주세요.',
+    badge:'기본 정보', badgeClass:'badge-basic', onClass:'on-blue', btnClass:'btn-blue',
+    steps:[
+      { type:'radio', q:'귀하의 연령대를 선택해주세요.', opts:['10대','20대','30대'] },
+      { type:'radio', q:'한 달에 쇼핑 어플리케이션을 몇 번 정도 이용하십니까?', opts:['월 1~2회','주 1회 정도','주 2~3회','거의 매일','거의 사용하지 않음'] },
+    ]
+  },
+  {
+    key:'awareness', title:'Part 2. 푸시 알림 인식 조사', desc:'평소 쇼핑 앱 알림 경험에 대해 답해주세요.',
+    badge:'푸시 알림 인식', badgeClass:'badge-main', onClass:'on-purple', btnClass:'btn-purple',
+    steps:[
+      { type:'radio',    q:'현재 쇼핑 앱의 푸시 알림을 켜두고 있습니까?', opts:['대부분 켜둠','일부 앱만 켜둠','거의 꺼둠','잘 모름'] },
+      { type:'checkbox', q:'쇼핑 앱에서 주로 무엇 때문에 푸시 알림을 받으십니까?', hint:'해당하는 것을 모두 선택해주세요.', opts:['할인 / 쿠폰','배송 / 주문 상태','상품 추천','재입고 안내','이벤트 / 프로모션','기타'] },
+      { type:'radio',    q:'쇼핑 앱의 푸시 알림을 받았을 때 얼마나 자주 열어보십니까?', opts:['모두 열어봄','대부분 열어봄','종종 열어봄','거의 열지 않음','전혀 열지 않음'] },
+      { type:'textarea', q:'평소 쇼핑 앱의 푸시 알림 라이팅 방식에 대해 생각한 점이 있다면 적어주세요.', optional:true, placeholder:'자유롭게 작성해 주세요.' },
+    ]
+  }
+];
+const CLOSING = [
+  { type:'radio',      q:'후속 인터뷰에 참여하실 의향이 있으십니까?', sub:'참여자분께 별도 사례를 드립니다.', opts:['예','아니오'], key:'interview' },
+  { type:'text-input', q:'연락 가능한 이메일 또는 연락처를 남겨주세요.', sub:'후속 인터뷰 참여자에 한해 연락드립니다.', placeholder:'hong@email.com 또는 010-0000-0000', condKey:'interview', condVal:0 },
+  { type:'text-input', q:'이벤트 참여를 위한 연락처를 남겨주세요.', sub:'추첨을 통해 커피 기프티콘을 드립니다. 입력하지 않으셔도 됩니다.', placeholder:'010-0000-0000', optional:true },
+];
+
+// ── 상태 ───────────────────────────────────────────────────
+let assignedKey=null, situation=null;
+let p12Sec=0, p12Step=0, p12Ans=[];
+let expNotifIdx=0, expStep=0, expAns=[];
+let clStep=0, clAns=[];
+let allResponses=[], currentTab='overview';
+
+// ── 유틸 ───────────────────────────────────────────────────
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+function makeNotifEl(n, hl){
+  const w=document.createElement('div'); w.className='iphone-notif-wrap';
+  const c=document.createElement('div'); c.className='iphone-notif'+(hl?' highlighted':'');
+  c.innerHTML=`<div class="iphone-notif-icon">🛍️</div>
+    <div class="iphone-notif-content">
+      <div class="iphone-notif-header"><span class="iphone-notif-title-wrap">${n.title}</span><span class="iphone-notif-time">방금 전</span></div>
+      <div class="iphone-notif-body">${n.body}</div>
+      <div class="iphone-notif-unsub">수신거부: MY &gt; 설정</div>
+    </div>`;
+  w.appendChild(c); return w;
+}
+function makeLikerts(container, ansObj, onUpdate){
+  LIKERT_QS.forEach(q=>{
+    const b=document.createElement('div'); b.className='likert-block';
+    const qt=document.createElement('div'); qt.className='likert-q'; qt.textContent=q.q; b.appendChild(qt);
+    const lr=document.createElement('div'); lr.className='likert-labels-row';
+    lr.innerHTML='<span class="likert-end-label">전혀 그렇지 않다</span><span class="likert-end-label">매우 그렇다</span>'; b.appendChild(lr);
+    const bs=document.createElement('div'); bs.className='likert-btns';
+    [1,2,3,4,5].forEach(v=>{
+      const btn=document.createElement('button');
+      btn.className='likert-btn'+(ansObj[q.id]===v?' on':'');
+      btn.textContent=v;
+      btn.onclick=()=>{ ansObj[q.id]=v; onUpdate(); };
+      bs.appendChild(btn);
+    });
+    b.appendChild(bs); container.appendChild(b);
+  });
+}
+
+// ── Firebase SDK ─────────────────────────────────────────────
+let _db = null;
+async function getDb(){
+  if(_db) return _db;
+  const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js');
+  const { getFirestore, collection, addDoc, getDocs } = await import('https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js');
+  const app = getApps().length ? getApps()[0] : initializeApp({
+    apiKey:     FB_API_KEY,
+    projectId:  FB_PROJECT,
+    authDomain: FB_AUTH_DOMAIN,
+  });
+  _db = { fs: getFirestore(app), collection, addDoc, getDocs };
+  return _db;
+}
+async function fbSave(payload){
+  try{
+    const db = await getDb();
+    await db.addDoc(db.collection(db.fs, FB_COL), payload);
+    console.log('Firebase 저장 완료');
+  }catch(e){ console.error('저장 오류', e); }
+}
+async function fbLoad(){
+  try{
+    const db = await getDb();
+    const snap = await db.getDocs(db.collection(db.fs, FB_COL));
+    return snap.docs.map(d => ({ ...d.data(), _id: d.id }));
+  }catch(e){ console.error('로드 오류', e); return []; }
+}
+
+// ── 시작 ───────────────────────────────────────────────────
+function startSurvey(){
+  const keys=Object.keys(SITUATIONS);
+  assignedKey=keys[Math.floor(Math.random()*keys.length)];
+  situation=SITUATIONS[assignedKey];
+  p12Ans=PART12.map(s=>s.steps.map(st=>st.type==='checkbox'?[]:st.type==='radio'?null:''));
+  expAns=situation.notifs.map(()=>{ const a={}; LIKERT_QS.forEach(q=>a[q.id]=null); return a; });
+  clAns=CLOSING.map(st=>st.type==='radio'?null:'');
+  p12Sec=0; p12Step=0; expNotifIdx=0; expStep=0; expPicked=null; clStep=0;
+  showPage('page-survey'); renderP12();
+}
+
+// ── Part 1·2 ───────────────────────────────────────────────
+function curSec(){ return PART12[p12Sec]; }
+function curSt(){  return curSec().steps[p12Step]; }
+function curAns(){ return p12Ans[p12Sec][p12Step]; }
+function setAns(v){ p12Ans[p12Sec][p12Step]=v; }
+function p12Done(){
+  const st=curSt();
+  if(st.optional) return true;
+  if(st.type==='radio')    return curAns()!==null;
+  if(st.type==='checkbox') return curAns().length>0;
+  if(st.type==='textarea') return curAns().trim().length>0;
+  return false;
+}
+function renderP12(){
+  const sec=curSec(); const st=curSt();
+  document.getElementById('sec-badge').className='sec-badge '+sec.badgeClass;
+  document.getElementById('sec-badge').textContent=sec.badge;
+  document.getElementById('sec-title').textContent=sec.title;
+  document.getElementById('sec-desc').textContent=sec.desc;
+  // 진행바
+  const tot=PART12.reduce((a,s)=>a+s.steps.length,0);
+  let done=0; PART12.forEach((s,si)=>{ if(si<p12Sec)done+=s.steps.length; else if(si===p12Sec)done+=p12Step; });
+  const row=document.getElementById('prog-row'); row.innerHTML='';
+  ['fill-blue','fill-purple'].forEach((fc,si)=>{
+    const seg=document.createElement('div'); seg.className='prog-seg'; seg.style.flex=PART12[si].steps.length;
+    const f=document.createElement('div'); f.className='prog-fill '+fc;
+    f.style.width=(si<p12Sec?100:si===p12Sec?Math.round(p12Step/PART12[si].steps.length*100):0)+'%';
+    seg.appendChild(f); row.appendChild(seg);
+    if(si<PART12.length-1){ const sp=document.createElement('span'); sp.className='prog-sep'; sp.textContent='›'; row.appendChild(sp); }
+  });
+  const lbl=document.createElement('span'); lbl.className='prog-label'; lbl.textContent=(done+1)+' / '+tot; row.appendChild(lbl);
+  const isFirst=p12Sec===0&&p12Step===0;
+  document.getElementById('btn-back').style.visibility=isFirst?'hidden':'visible';
+  const nb=document.getElementById('btn-next');
+  nb.className='btn-next '+sec.btnClass; nb.textContent='다음'; nb.disabled=!p12Done();
+  const body=document.getElementById('card-body'); body.innerHTML='';
+  if(st.type==='radio'){
+    const q=document.createElement('div'); q.className='q-text'; q.textContent=st.q; body.appendChild(q);
+    const ol=document.createElement('div'); ol.className='option-list'; body.appendChild(ol);
+    st.opts.forEach((opt,i)=>{
+      const sel=curAns()===i;
+      const btn=document.createElement('button');
+      btn.className='option-btn'+(sel?' '+sec.onClass:'');
+      btn.innerHTML=`<div class="radio-dot"><div class="radio-inner"></div></div><span>${opt}</span>`;
+      btn.onclick=()=>{ setAns(i); renderP12(); };
+      ol.appendChild(btn);
+    });
+  } else if(st.type==='checkbox'){
+    const q=document.createElement('div'); q.className='q-text'; q.textContent=st.q; body.appendChild(q);
+    if(st.hint){ const h=document.createElement('div'); h.className='q-hint'; h.textContent=st.hint; body.appendChild(h); }
+    const ol=document.createElement('div'); ol.className='option-list'; body.appendChild(ol);
+    st.opts.forEach((opt,i)=>{
+      const arr=curAns(); const sel=arr.includes(i);
+      const btn=document.createElement('button');
+      btn.className='option-btn'+(sel?' on-purple':'');
+      btn.innerHTML=`<div class="check-box"><svg class="check-inner" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>${opt}</span>`;
+      btn.onclick=()=>{ const a=curAns(); const idx=a.indexOf(i); idx>-1?a.splice(idx,1):a.push(i); renderP12(); };
+      ol.appendChild(btn);
+    });
+  } else if(st.type==='textarea'){
+    const q=document.createElement('div'); q.className='q-text';
+    q.innerHTML=st.q+' <span class="optional-badge">선택</span>'; body.appendChild(q);
+    const ta=document.createElement('textarea'); ta.className='text-area'; ta.placeholder=st.placeholder||''; ta.value=curAns();
+    ta.oninput=()=>{ setAns(ta.value); document.getElementById('btn-next').disabled=!p12Done(); };
+    body.appendChild(ta);
+    const note=document.createElement('p'); note.className='optional-note'; note.textContent='입력하지 않으셔도 다음 단계로 넘어갈 수 있습니다.'; body.appendChild(note);
+  }
+}
+function goPrev(){
+  if(p12Step>0) p12Step--;
+  else if(p12Sec>0){ p12Sec--; p12Step=curSec().steps.length-1; }
+  renderP12();
+}
+function goNext(){
+  if(!p12Done()) return;
+  const ls=p12Sec===PART12.length-1, lt=p12Step===curSec().steps.length-1;
+  if(ls&&lt){ showPage('page-exp'); renderExp(); return; }
+  if(lt){ p12Sec++; p12Step=0; } else p12Step++;
+  renderP12();
+}
+
+// ── Part 3 실험 ────────────────────────────────────────────
+// expStep: 0 = 알림 3개 보여주고 선택, 1~3 = notif0/1/2 리커트 평가
+// EXP_TOTAL = 4페이지 (선택 1 + 리커트 3)
+const EXP_TOTAL = 4;
+let expPicked = null; // 선택한 알림 인덱스
+
+function expDone(){
+  if(expStep===0) return expPicked !== null;
+  const ni = expStep - 1;
+  return LIKERT_QS.every(q=>expAns[ni][q.id]!==null);
+}
+
+function renderExp(){
+  const cur = expStep;
+  document.getElementById('exp-prog-fill').style.width=Math.round(cur/EXP_TOTAL*100)+'%';
+  document.getElementById('exp-prog-label').textContent=(cur+1)+' / '+EXP_TOTAL;
+  const isFirst = expStep===0;
+  const isLast  = expStep===3;
+  document.getElementById('exp-btn-back').style.visibility=isFirst?'hidden':'visible';
+  const nb=document.getElementById('exp-btn-next');
+  nb.textContent=isLast?'다음 →':'다음'; nb.disabled=!expDone();
+  const body=document.getElementById('exp-body'); body.innerHTML='';
+
+  if(expStep===0){
+    // 상황 설명
+    const box=document.createElement('div'); box.className='situation-box';
+    box.textContent=situation.desc; body.appendChild(box);
+    const q=document.createElement('div'); q.className='q-text';
+    q.textContent='가장 누르고 싶은 푸시 알림을 선택해주세요.'; body.appendChild(q);
+    const sub=document.createElement('div'); sub.className='q-sub';
+    sub.textContent='하나만 선택할 수 있어요.'; body.appendChild(sub);
+    // 알림 3개 선택형으로 나열
+    situation.notifs.forEach((n,i)=>{
+      const wrap=document.createElement('div');
+      wrap.style.cssText='margin-bottom:20px;';
+
+      // 푸시 알림 카드
+      const notifWrap=document.createElement('div');
+      notifWrap.className='iphone-notif-wrap';
+      notifWrap.style.marginBottom='8px';
+      const card=document.createElement('div');
+      card.className='iphone-notif'+(expPicked===i?' highlighted':'');
+      card.style.cssText='border:'+(expPicked===i?'1.5px solid #D4537E':'1.5px solid rgba(0,0,0,0.1)')+';';
+      card.innerHTML=`<div class="iphone-notif-icon">🛍️</div>
+        <div class="iphone-notif-content">
+          <div class="iphone-notif-header"><span class="iphone-notif-title-wrap">${n.title}</span><span class="iphone-notif-time">방금 전</span></div>
+          <div class="iphone-notif-body">${n.body}</div>
+          <div class="iphone-notif-unsub">수신거부: MY &gt; 설정</div>
+        </div>`;
+      notifWrap.appendChild(card);
+
+      // 선택 버튼 — 카드 아래 독립 버튼
+      const selectBtn=document.createElement('button');
+      selectBtn.style.cssText=`display:block;margin:0 auto;padding:8px 24px;border-radius:99px;border:1.5px solid ${expPicked===i?'#D4537E':'rgba(0,0,0,0.15)'};background:${expPicked===i?'#D4537E':'#fff'};color:${expPicked===i?'#fff':'#6B6A66'};font-size:13px;font-weight:${expPicked===i?'700':'500'};font-family:inherit;cursor:pointer;transition:all 0.12s;`;
+      selectBtn.textContent=expPicked===i?'✓  선택됨':'이 알림 선택';
+
+      [card, selectBtn].forEach(el=>{ el.onclick=()=>{ expPicked=i; renderExp(); }; });
+
+      wrap.appendChild(notifWrap); wrap.appendChild(selectBtn);
+      body.appendChild(wrap);
+    });
+
+  } else {
+    // 리커트 평가 단계 (expStep 1=notif0, 2=notif1, 3=notif2)
+    const ni = expStep - 1;
+    const n = situation.notifs[ni];
+    // 상단 알림 미리보기
+    body.appendChild(makeNotifEl(n, true));
+    const q=document.createElement('div'); q.className='q-text';
+    q.textContent=`알림 ${ni+1} / 3 평가`; body.appendChild(q);
+    const sub=document.createElement('div'); sub.className='q-sub';
+    sub.textContent='각 문항에 대해 1(전혀 그렇지 않다) ~ 5(매우 그렇다)로 응답해주세요.'; body.appendChild(sub);
+    makeLikerts(body, expAns[ni], renderExp);
+  }
+}
+
+function expPrev(){
+  if(expStep>0) expStep--;
+  else{ showPage('page-survey'); renderP12(); return; }
+  window.scrollTo(0,0); renderExp();
+}
+function expNext(){
+  if(!expDone()) return;
+  const isLast = expStep===3;
+  if(isLast){ showPage('page-closing'); renderClosing(); return; }
+  expStep++;
+  window.scrollTo(0,0); renderExp();
+}
+
+// ── Part 4 마무리 ──────────────────────────────────────────
+function clSt(){ return CLOSING[clStep]; }
+function clAn(){ return clAns[clStep]; }
+function setClAn(v){ clAns[clStep]=v; }
+function clSkipped(){
+  const st=clSt(); if(!st.condKey) return false;
+  const ci=CLOSING.findIndex(s=>s.key===st.condKey);
+  return clAns[ci]!==st.condVal;
+}
+function clDone(){
+  if(clSkipped()||clSt().optional) return true;
+  if(clSt().type==='radio') return clAn()!==null;
+  return typeof clAn()==='string'&&clAn().trim().length>0;
+}
+function renderClosing(){
+  const st=clSt();
+  document.getElementById('cl-prog-fill').style.width=Math.round(clStep/CLOSING.length*100)+'%';
+  document.getElementById('cl-prog-label').textContent=(clStep+1)+' / '+CLOSING.length;
+  document.getElementById('cl-btn-back').style.visibility=clStep===0?'hidden':'visible';
+  const nb=document.getElementById('cl-btn-next');
+  nb.textContent=clStep===CLOSING.length-1?'제출하기':'다음'; nb.disabled=!clDone();
+  const body=document.getElementById('cl-body'); body.innerHTML='';
+  if(st.type==='radio'){
+    const q=document.createElement('div'); q.className='q-text'; q.textContent=st.q; body.appendChild(q);
+    if(st.sub){ const s=document.createElement('div'); s.className='q-sub'; s.textContent=st.sub; body.appendChild(s); }
+    const ol=document.createElement('div'); ol.className='option-list'; body.appendChild(ol);
+    st.opts.forEach((opt,i)=>{
+      const btn=document.createElement('button');
+      btn.className='option-btn'+(clAn()===i?' on-amber':'');
+      btn.innerHTML=`<div class="radio-dot"><div class="radio-inner"></div></div><span>${opt}</span>`;
+      btn.onclick=()=>{ setClAn(i); renderClosing(); };
+      ol.appendChild(btn);
+    });
+  } else if(st.type==='text-input'){
+    const q=document.createElement('div'); q.className='q-text'; q.textContent=st.q; body.appendChild(q);
+    if(st.sub){ const s=document.createElement('div'); s.className='q-sub'; s.textContent=st.sub; body.appendChild(s); }
+    if(clSkipped()){
+      const info=document.createElement('div'); info.className='info-box'; info.textContent='인터뷰 미참여를 선택하셔서 이 질문은 건너뜁니다.'; body.appendChild(info);
+    } else {
+      const inp=document.createElement('input'); inp.type='text'; inp.className='text-input';
+      inp.placeholder=st.placeholder||''; inp.value=clAn()||'';
+      inp.oninput=()=>{ setClAn(inp.value); document.getElementById('cl-btn-next').disabled=!clDone(); };
+      body.appendChild(inp);
+      if(st.optional){ const note=document.createElement('p'); note.className='optional-note'; note.textContent='입력하지 않으셔도 제출할 수 있습니다.'; body.appendChild(note); }
+    }
+  }
+}
+function clPrev(){
+  if(clStep>0){ clStep--; renderClosing(); }
+  else{ showPage('page-exp'); renderExp(); }
+}
+function clNext(){
+  if(!clDone()) return;
+  if(clStep<CLOSING.length-1){ clStep++; renderClosing(); return; }
+  submitAll();
+}
+
+// ── 제출 ───────────────────────────────────────────────────
+async function submitAll(){
+  const ageOpts=['10대','20대','30대'];
+  const usageOpts=['월 1~2회','주 1회 정도','주 2~3회','거의 매일','거의 사용하지 않음'];
+  const onOffOpts=['대부분 켜둠','일부 앱만 켜둠','거의 꺼둠','잘 모름'];
+  const reasonOpts=['할인/쿠폰','배송/주문','상품추천','재입고','이벤트','기타'];
+  const openOpts=['모두','대부분','종종','거의 안 함','전혀 안 함'];
+  const toneLabels=['희소성긴박함','유머친근함','직접정보전달'];
+  const sitLabel={A:'세일',B:'배송+리뷰',C:'출석체크',D:'상품추천'};
+
+  // Firestore는 필드 순서를 보장하지 않으므로 번호 prefix로 정렬
+  const payload={
+    '00_submittedAt':      new Date().toISOString(),
+    '01_assignedSituation': assignedKey,
+    '02_assignedLabel':    sitLabel[assignedKey]||'',
+    '03_age':              p12Ans[0][0]!==null ? ageOpts[p12Ans[0][0]] : '',
+    '04_appUsage':         p12Ans[0][1]!==null ? usageOpts[p12Ans[0][1]] : '',
+    '05_notifOnOff':       p12Ans[1][0]!==null ? onOffOpts[p12Ans[1][0]] : '',
+    '06_notifReason':      Array.isArray(p12Ans[1][1]) ? p12Ans[1][1].map(i=>reasonOpts[i]).join(', ') : '',
+    '07_openRate':         p12Ans[1][2]!==null ? openOpts[p12Ans[1][2]] : '',
+    '08_freeOpinion':      p12Ans[1][3]||'',
+    '09_pickedNotif':      expPicked !== null ? toneLabels[expPicked] : '',
+    '10_notif0_tone':      toneLabels[0],
+    '11_notif0_discomfort':   expAns[0].discomfort,
+    '12_notif0_positive':     expAns[0].positive,
+    '13_notif0_satisfaction': expAns[0].satisfaction,
+    '14_notif0_continue':     expAns[0].continue,
+    '15_notif0_revisit':      expAns[0].revisit,
+    '16_notif0_recommend':    expAns[0].recommend,
+    '17_notif1_tone':      toneLabels[1],
+    '18_notif1_discomfort':   expAns[1].discomfort,
+    '19_notif1_positive':     expAns[1].positive,
+    '20_notif1_satisfaction': expAns[1].satisfaction,
+    '21_notif1_continue':     expAns[1].continue,
+    '22_notif1_revisit':      expAns[1].revisit,
+    '23_notif1_recommend':    expAns[1].recommend,
+    '24_notif2_tone':      toneLabels[2],
+    '25_notif2_discomfort':   expAns[2].discomfort,
+    '26_notif2_positive':     expAns[2].positive,
+    '27_notif2_satisfaction': expAns[2].satisfaction,
+    '28_notif2_continue':     expAns[2].continue,
+    '29_notif2_revisit':      expAns[2].revisit,
+    '30_notif2_recommend':    expAns[2].recommend,
+    '31_interviewWilling': clAns[0]!==null ? ['예','아니오'][clAns[0]] : '',
+    '32_interviewContact': clAns[1]||'',
+    '33_eventContact':     clAns[2]||'',
+  };
+  await fbSave(payload);
+  showPage('page-done');
+}
+
+// ── 리서처 ─────────────────────────────────────────────────
+function checkPw(){
+  if(document.getElementById('pw-input').value===RESEARCHER_PW){
+    document.getElementById('login-error').style.display='none';
+    document.getElementById('pw-input').value='';
+    showPage('page-researcher');
+    loadResearcher();
+  } else {
+    document.getElementById('login-error').style.display='block';
+  }
+}
+async function loadResearcher(){
+  document.getElementById('r-content').innerHTML='<div class="loading-state">데이터 불러오는 중...</div>';
+  allResponses=await fbLoad();
+  renderResearcher();
+}
+function switchTab(btn, tab){
+  currentTab=tab;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderResearcher();
+}
+function bar(n, total){
+  const pct=total>0?Math.round(n/total*100):0;
+  return `<div class="bar-row"><div class="bar-track"><div class="bar-fill-el" style="width:${pct}%"></div></div><span class="bar-pct">${pct}%</span></div>`;
+}
+function renderResearcher(){
+  const rs=allResponses;
+  const today=new Date().toISOString().slice(0,10);
+  document.getElementById('r-total').textContent=rs.length;
+  document.getElementById('r-interview').textContent=rs.filter(r=>r.interviewWilling==='예').length;
+  document.getElementById('r-today').textContent=rs.filter(r=>(r.submittedAt||'').slice(0,10)===today).length;
+  const el=document.getElementById('r-content'); el.innerHTML='';
+  if(currentTab==='overview') renderOverview(el,rs);
+  else if(currentTab==='situation') renderSituation(el,rs);
+  else renderResponses(el,rs);
+}
+function addLabel(el,text){ const d=document.createElement('div'); d.className='r-lbl'; d.textContent=text; el.appendChild(d); }
+function addTable(el,headers,rows){
+  const t=document.createElement('table'); t.className='result-table';
+  t.innerHTML='<tr>'+headers.map(h=>`<th>${h}</th>`).join('')+'</tr>';
+  rows.forEach(r=>{ t.innerHTML+=`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`; });
+  el.appendChild(t);
+}
+function renderOverview(el,rs){
+  if(!rs.length){ el.innerHTML='<div class="empty-state">아직 응답이 없습니다.</div>'; return; }
+  const sitLbl={A:'세일',B:'배송+리뷰',C:'출석체크',D:'상품추천'};
+  addLabel(el,'상황 배정 분포');
+  addTable(el,['상황','응답 수','비율'],
+    ['A','B','C','D'].map(k=>{ const n=rs.filter(r=>r.assignedSituation===k).length; return [`<span class="sit-badge sit-${k}">${k} ${sitLbl[k]}</span>`,`${n}명`,bar(n,rs.length)]; }));
+  addLabel(el,'연령대');
+  addTable(el,['연령대','응답 수','비율'],
+    ['10대','20대','30대'].map(a=>{ const n=rs.filter(r=>r.age===a).length; return [a,`${n}명`,bar(n,rs.length)]; }));
+  addLabel(el,'푸시 알림 설정 현황');
+  addTable(el,['상태','응답 수','비율'],
+    ['대부분 켜둠','일부 앱만 켜둠','거의 꺼둠','잘 모름'].map(o=>{ const n=rs.filter(r=>r.notifOnOff===o).length; return [o,`${n}명`,bar(n,rs.length)]; }));
+  addLabel(el,'알림 열람 빈도');
+  addTable(el,['빈도','응답 수','비율'],
+    ['모두','대부분','종종','거의 안 함','전혀 안 함'].map(o=>{ const n=rs.filter(r=>r.openRate===o).length; return [o,`${n}명`,bar(n,rs.length)]; }));
+}
+function renderSituation(el,rs){
+  if(!rs.length){ el.innerHTML='<div class="empty-state">아직 응답이 없습니다.</div>'; return; }
+  const sitLbl={A:'세일',B:'배송+리뷰',C:'출석체크',D:'상품추천'};
+  const qShort=['불쾌↓','긍정↑','만족↑','지속↑','재방↑','추천↑'];
+  ['A','B','C','D'].forEach(k=>{
+    const grp=rs.filter(r=>r.assignedSituation===k);
+    if(!grp.length) return;
+    addLabel(el,`상황 ${k} — ${sitLbl[k]} (${grp.length}명)`);
+    const rows=[0,1,2].map(ni=>{
+      const key='notif'+ni;
+      const vals=LIKERT_QS.map(q=>{
+        const scores=grp.map(r=>r[key]&&typeof r[key][q.id]==='number'?r[key][q.id]:null).filter(v=>v!==null);
+        return scores.length?(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1):'-';
+      });
+      return [`<span style="font-size:11px;color:#6B6A66;">${TONE_LABELS[ni]}</span>`, ...vals];
+    });
+    addTable(el,['말투',...qShort],rows);
+    const note=document.createElement('p'); note.style.cssText='font-size:11px;color:#A09E98;margin-top:4px;margin-bottom:16px;'; note.textContent='※ 5점 만점 평균값'; el.appendChild(note);
+  });
+}
+function renderResponses(el,rs){
+  if(!rs.length){ el.innerHTML='<div class="empty-state">아직 응답이 없습니다.</div>'; return; }
+  const sitLbl={A:'세일',B:'배송+리뷰',C:'출석체크',D:'상품추천'};
+  [...rs].sort((a,b)=>(b.submittedAt||'').localeCompare(a.submittedAt||'')).forEach((r,i)=>{
+    const item=document.createElement('div'); item.className='resp-item';
+    const date=r.submittedAt?new Date(r.submittedAt).toLocaleString('ko-KR'):'-';
+    const k=r.assignedSituation||'?';
+    item.innerHTML=`
+      <div class="resp-meta">
+        <strong style="font-size:13px;">#${rs.length-i}</strong>
+        <span class="sit-badge sit-${k}">${k} ${sitLbl[k]||''}</span>
+        <span style="font-size:11px;color:#A09E98;">${date}</span>
+        ${r.interviewWilling==='예'?'<span style="font-size:11px;padding:2px 8px;border-radius:99px;background:#E1F5EE;color:#0F6E56;font-weight:700;">인터뷰 동의</span>':''}
+      </div>
+      <div class="resp-detail">
+        ${r.age||''} · ${r.appUsage||''} · 알림 ${r.notifOnOff||''} · ${r.openRate||''}
+        ${r.interviewContact?`<br>📞 ${r.interviewContact}`:''}
+        ${r.eventContact?`<br>🎁 ${r.eventContact}`:''}
+        ${r.freeOpinion?`<br>💬 "${r.freeOpinion}"`:''}
+      </div>`;
+    el.appendChild(item);
+  });
+}
+</script>
+</body>
+</html>
