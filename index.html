@@ -303,7 +303,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         </div>
         <div class="tab-row">
           <button class="tab-btn on" onclick="switchTab(this,'overview')">개요</button>
-          <button class="tab-btn" onclick="switchTab(this,'situation')">상황별 리커트</button>
+          <button class="tab-btn" onclick="switchTab(this,'situation')">상황별</button>
+          <button class="tab-btn" onclick="switchTab(this,'freetext')">주관식</button>
+          <button class="tab-btn" onclick="switchTab(this,'interview')">인터뷰 동의자</button>
           <button class="tab-btn" onclick="switchTab(this,'responses')">개별 응답</button>
         </div>
         <div id="r-content"><div class="loading-state">데이터 불러오는 중...</div></div>
@@ -789,8 +791,12 @@ function renderResearcher(){
   const el=document.getElementById('r-content'); el.innerHTML='';
   if(currentTab==='overview') renderOverview(el,rs);
   else if(currentTab==='situation') renderSituation(el,rs);
+  else if(currentTab==='freetext') renderFreetext(el,rs);
+  else if(currentTab==='interview') renderInterview(el,rs);
   else renderResponses(el,rs);
 }
+
+// ── 공통 헬퍼 ──────────────────────────────────────────────
 function addLabel(el,text){ const d=document.createElement('div'); d.className='r-lbl'; d.textContent=text; el.appendChild(d); }
 function addTable(el,headers,rows){
   const t=document.createElement('table'); t.className='result-table';
@@ -798,44 +804,148 @@ function addTable(el,headers,rows){
   rows.forEach(r=>{ t.innerHTML+=`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`; });
   el.appendChild(t);
 }
+function bar(n,total){ const pct=total>0?Math.round(n/total*100):0; return `<div class="bar-row"><div class="bar-track"><div class="bar-fill-el" style="width:${pct}%"></div></div><span class="bar-pct">${pct}%</span></div>`; }
+
+const QPREFIX_R={
+  0:{discomfort:'11',positive:'12',satisfaction:'13',continue:'14',revisit:'15',recommend:'16'},
+  1:{discomfort:'18',positive:'19',satisfaction:'20',continue:'21',revisit:'22',recommend:'23'},
+  2:{discomfort:'25',positive:'26',satisfaction:'27',continue:'28',revisit:'29',recommend:'30'}
+};
+const TLBLS_R=['희소성·긴박함','유머·친근함','직접·정보전달'];
+const QLBLS_R={discomfort:'불쾌함↓',positive:'긍정',satisfaction:'표현만족',continue:'지속사용',revisit:'재방문',recommend:'추천의향'};
+const SLBL={A:'세일',B:'배송+리뷰',C:'출석체크',D:'상품추천'};
+const QIDS=['discomfort','positive','satisfaction','continue','revisit','recommend'];
+
+function getScore(r,ni,qid){
+  const pnum=QPREFIX_R[ni][qid];
+  const fkey=Object.keys(r).find(k=>k.startsWith(pnum+'_'));
+  return fkey&&typeof r[fkey]==='number'?r[fkey]:null;
+}
+function avgScore(grp,ni,qid){
+  const vals=grp.map(r=>getScore(r,ni,qid)).filter(v=>v!==null);
+  return vals.length?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2):'-';
+}
+function scoreBg(qid,val){
+  if(val==='-'||val===null||val===undefined) return '';
+  const v=parseFloat(val);
+  if(isNaN(v)) return '';
+  if(qid==='discomfort') return v<=2?'background:#DCFCE7;color:#166534':v<=3?'background:#FEF9C3;color:#854F0B':'background:#FEE2E2;color:#991B1B';
+  return v>=4?'background:#DCFCE7;color:#166534':v>=3?'background:#FEF9C3;color:#854F0B':'background:#FEE2E2;color:#991B1B';
+}
+
+// ── 개요 탭 ────────────────────────────────────────────────
 function renderOverview(el,rs){
   if(!rs.length){ el.innerHTML='<div class="empty-state">아직 응답이 없습니다.</div>'; return; }
-  const sitLbl={A:'세일',B:'배송+리뷰',C:'출석체크',D:'상품추천'};
   addLabel(el,'상황 배정 분포');
   addTable(el,['상황','응답 수','비율'],
-    ['A','B','C','D'].map(k=>{ const n=rs.filter(r=>r['01_assignedSituation']===k).length; return [`<span class="sit-badge sit-${k}">${k} ${sitLbl[k]}</span>`,`${n}명`,bar(n,rs.length)]; }));
+    ['A','B','C','D'].map(k=>{ const n=rs.filter(r=>r['01_assignedSituation']===k).length; return [`<span class="sit-badge sit-${k}">${k} ${SLBL[k]}</span>`,`${n}명`,bar(n,rs.length)]; }));
   addLabel(el,'연령대');
   addTable(el,['연령대','응답 수','비율'],
     ['10대','20대','30대'].map(a=>{ const n=rs.filter(r=>r['03_age']===a).length; return [a,`${n}명`,bar(n,rs.length)]; }));
+  addLabel(el,'앱 이용 빈도');
+  addTable(el,['빈도','응답 수','비율'],
+    ['월 1~2회','주 1회 정도','주 2~3회','거의 매일','거의 사용하지 않음'].map(o=>{ const n=rs.filter(r=>r['04_appUsage']===o).length; return [o,`${n}명`,bar(n,rs.length)]; }));
   addLabel(el,'푸시 알림 설정 현황');
   addTable(el,['상태','응답 수','비율'],
     ['대부분 켜둠','일부 앱만 켜둠','거의 꺼둠','잘 모름'].map(o=>{ const n=rs.filter(r=>r['05_notifOnOff']===o).length; return [o,`${n}명`,bar(n,rs.length)]; }));
+  addLabel(el,'알림 수신 이유 (복수 선택)');
+  addTable(el,['이유','응답 수'],
+    ['할인/쿠폰','배송/주문','상품추천','재입고','이벤트','기타'].map(o=>{ const n=rs.filter(r=>(r['06_notifReason']||'').includes(o)).length; return [o,`${n}명`]; }));
   addLabel(el,'알림 열람 빈도');
   addTable(el,['빈도','응답 수','비율'],
     ['모두','대부분','종종','거의 안 함','전혀 안 함'].map(o=>{ const n=rs.filter(r=>r['07_openRate']===o).length; return [o,`${n}명`,bar(n,rs.length)]; }));
+  addLabel(el,'가장 선호한 알림 말투 (전체)');
+  addTable(el,['말투','선택 수','비율'],
+    ['희소성긴박함','유머친근함','직접정보전달'].map((t,i)=>{ const n=rs.filter(r=>r['09_pickedNotif']===t).length; return [TLBLS_R[i],`${n}명`,bar(n,rs.length)]; }));
 }
+
+// ── 상황별 탭 ──────────────────────────────────────────────
 function renderSituation(el,rs){
   if(!rs.length){ el.innerHTML='<div class="empty-state">아직 응답이 없습니다.</div>'; return; }
-  const sitLbl={A:'세일',B:'배송+리뷰',C:'출석체크',D:'상품추천'};
-  const qShort=['불쾌↓','긍정↑','만족↑','지속↑','재방↑','추천↑'];
   ['A','B','C','D'].forEach(k=>{
     const grp=rs.filter(r=>r['01_assignedSituation']===k);
     if(!grp.length) return;
-    addLabel(el,`상황 ${k} — ${sitLbl[k]} (${grp.length}명)`);
-    const QPREFIX={0:{discomfort:'11',positive:'12',satisfaction:'13',continue:'14',revisit:'15',recommend:'16'},1:{discomfort:'18',positive:'19',satisfaction:'20',continue:'21',revisit:'22',recommend:'23'},2:{discomfort:'25',positive:'26',satisfaction:'27',continue:'28',revisit:'29',recommend:'30'}};
-    const rows=[0,1,2].map(ni=>{
-      const vals=LIKERT_QS.map(q=>{
-        const pnum=QPREFIX[ni][q.id];
-        const fkey=Object.keys(grp[0]||{}).find(k=>k.startsWith(pnum+'_'));
-        const scores=grp.map(r=>fkey&&typeof r[fkey]==='number'?r[fkey]:null).filter(v=>v!==null);
-        return scores.length?(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1):'-';
-      });
-      return [`<span style="font-size:11px;color:#6B6A66;">${TONE_LABELS[ni]}</span>`, ...vals];
+    addLabel(el,`상황 ${k} — ${SLBL[k]} (${grp.length}명)`);
+    // 선호도
+    const toneMap={'희소성긴박함':'희소성·긴박함','유머친근함':'유머·친근함','직접정보전달':'직접·정보전달'};
+    const s1=document.createElement('div'); s1.style.cssText='font-size:11px;color:#A09E98;margin-bottom:4px;'; s1.textContent='▸ 가장 누르고 싶은 알림'; el.appendChild(s1);
+    addTable(el,['말투','선택 수','비율'],
+      ['희소성긴박함','유머친근함','직접정보전달'].map(t=>{ const n=grp.filter(r=>r['09_pickedNotif']===t).length; return [toneMap[t],`${n}명`,bar(n,grp.length)]; }));
+    // 리커트
+    const s2=document.createElement('div'); s2.style.cssText='font-size:11px;color:#A09E98;margin:10px 0 4px;'; s2.textContent='▸ 말투별 리커트 평균 (5점 만점)'; el.appendChild(s2);
+    const rows=QIDS.map(qid=>{
+      const cols=[QLBLS_R[qid]];
+      [0,1,2].forEach(ni=>{ const avg=avgScore(grp,ni,qid); cols.push(`<span style="padding:2px 6px;border-radius:4px;font-weight:600;${scoreBg(qid,avg)}">${avg}</span>`); });
+      return cols;
     });
-    addTable(el,['말투',...qShort],rows);
-    const note=document.createElement('p'); note.style.cssText='font-size:11px;color:#A09E98;margin-top:4px;margin-bottom:16px;'; note.textContent='※ 5점 만점 평균값'; el.appendChild(note);
+    const avgRow=['<strong>종합평균</strong>'];
+    [0,1,2].forEach(ni=>{
+      const vals=QIDS.filter(q=>q!=='discomfort').map(q=>parseFloat(avgScore(grp,ni,q))).filter(v=>!isNaN(v));
+      avgRow.push(`<strong>${vals.length?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2):'-'}</strong>`);
+    });
+    rows.push(avgRow);
+    addTable(el,['문항',...TLBLS_R],rows);
+    const note=document.createElement('p'); note.style.cssText='font-size:11px;color:#A09E98;margin-top:4px;margin-bottom:24px;'; note.textContent='※ 불쾌함은 낮을수록, 나머지는 높을수록 좋음'; el.appendChild(note);
   });
 }
+
+// ── 주관식 탭 ──────────────────────────────────────────────
+function renderFreetext(el,rs){
+  const ans=rs.filter(r=>r['08_freeOpinion']&&r['08_freeOpinion'].trim().length>0);
+  if(!ans.length){ el.innerHTML='<div class="empty-state">주관식 응답이 없습니다.</div>'; return; }
+  addLabel(el,`주관식 응답 — ${ans.length}명 / 전체 ${rs.length}명`);
+  [...ans].sort((a,b)=>(b['00_submittedAt']||'').localeCompare(a['00_submittedAt']||'')).forEach(r=>{
+    const k=r['01_assignedSituation']||'?';
+    const item=document.createElement('div'); item.style.cssText='background:#F5F4F1;border-radius:10px;padding:12px 14px;margin-bottom:8px;';
+    item.innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+      <span class="sit-badge sit-${k}">${k} ${SLBL[k]||''}</span>
+      <span style="font-size:11px;color:#A09E98;">${r['03_age']||''} · ${r['04_appUsage']||''}</span>
+    </div>
+    <div style="font-size:13px;color:#1A1917;line-height:1.7;">"${r['08_freeOpinion']}"</div>`;
+    el.appendChild(item);
+  });
+}
+
+// ── 인터뷰 동의자 탭 ───────────────────────────────────────
+function renderInterview(el,rs){
+  const agreed=rs.filter(r=>r['31_interviewWilling']==='예');
+  if(!agreed.length){ el.innerHTML='<div class="empty-state">인터뷰 동의자가 없습니다.</div>'; return; }
+  addLabel(el,`인터뷰 동의자 — ${agreed.length}명`);
+  [...agreed].sort((a,b)=>(b['00_submittedAt']||'').localeCompare(a['00_submittedAt']||'')).forEach((r,i)=>{
+    const k=r['01_assignedSituation']||'?';
+    const date=r['00_submittedAt']?new Date(r['00_submittedAt']).toLocaleString('ko-KR'):'-';
+    const item=document.createElement('div');
+    item.style.cssText='background:#fff;border:1px solid rgba(0,0,0,0.1);border-radius:12px;padding:16px;margin-bottom:12px;';
+    let html=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+      <strong style="font-size:14px;">#${agreed.length-i}</strong>
+      <span class="sit-badge sit-${k}">${k} ${SLBL[k]||''}</span>
+      <span style="font-size:11px;color:#A09E98;">${date}</span>
+      ${r['32_interviewContact']?`<span style="font-size:12px;font-weight:700;color:#0F6E56;background:#E1F5EE;padding:3px 10px;border-radius:99px;">📞 ${r['32_interviewContact']}</span>`:'<span style="font-size:11px;color:#C0BEBB;">연락처 미입력</span>'}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-bottom:12px;background:#F5F4F1;border-radius:8px;padding:10px 12px;">
+      <div><span style="color:#A09E98;">연령대 </span><strong>${r['03_age']||'-'}</strong></div>
+      <div><span style="color:#A09E98;">이용빈도 </span><strong>${r['04_appUsage']||'-'}</strong></div>
+      <div><span style="color:#A09E98;">알림설정 </span><strong>${r['05_notifOnOff']||'-'}</strong></div>
+      <div><span style="color:#A09E98;">열람빈도 </span><strong>${r['07_openRate']||'-'}</strong></div>
+      <div style="grid-column:1/-1;"><span style="color:#A09E98;">알림수신이유 </span><strong>${r['06_notifReason']||'-'}</strong></div>
+      <div style="grid-column:1/-1;"><span style="color:#A09E98;">선택말투 </span><strong>${r['09_pickedNotif']||'-'}</strong></div>
+    </div>
+    <div style="font-size:11px;color:#A09E98;margin-bottom:6px;">리커트 평가</div>
+    <div style="overflow-x:auto;margin-bottom:10px;">
+      <table class="result-table" style="font-size:11px;min-width:380px;">
+        <tr><th>문항</th>${TLBLS_R.map(t=>`<th>${t}</th>`).join('')}</tr>`;
+    QIDS.forEach(qid=>{
+      html+=`<tr><td>${QLBLS_R[qid]}</td>`;
+      [0,1,2].forEach(ni=>{ const val=getScore(r,ni,qid); html+=`<td style="text-align:center;${scoreBg(qid,val!==null?val.toString():'-')}">${val!==null?val:'-'}</td>`; });
+      html+=`</tr>`;
+    });
+    html+=`</table></div>`;
+    if(r['08_freeOpinion']) html+=`<div style="padding:10px 12px;background:#EEEDFE;border-radius:8px;font-size:12px;color:#3C3489;line-height:1.7;">💬 "${r['08_freeOpinion']}"</div>`;
+    item.innerHTML=html;
+    el.appendChild(item);
+  });
+}
+
 function renderResponses(el,rs){
   if(!rs.length){ el.innerHTML='<div class="empty-state">아직 응답이 없습니다.</div>'; return; }
   const sitLbl={A:'세일',B:'배송+리뷰',C:'출석체크',D:'상품추천'};
