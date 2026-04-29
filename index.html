@@ -822,10 +822,12 @@ function renderSituation(el,rs){
     const grp=rs.filter(r=>r['01_assignedSituation']===k);
     if(!grp.length) return;
     addLabel(el,`상황 ${k} — ${sitLbl[k]} (${grp.length}명)`);
+    const QPREFIX={0:{discomfort:'11',positive:'12',satisfaction:'13',continue:'14',revisit:'15',recommend:'16'},1:{discomfort:'18',positive:'19',satisfaction:'20',continue:'21',revisit:'22',recommend:'23'},2:{discomfort:'25',positive:'26',satisfaction:'27',continue:'28',revisit:'29',recommend:'30'}};
     const rows=[0,1,2].map(ni=>{
-      const key='notif'+ni;
       const vals=LIKERT_QS.map(q=>{
-        const scores=grp.map(r=>r['notif'+ni]&&typeof r['notif'+ni][q.id]==='number'?r['notif'+ni][q.id]:null).filter(v=>v!==null);
+        const pnum=QPREFIX[ni][q.id];
+        const fkey=Object.keys(grp[0]||{}).find(k=>k.startsWith(pnum+'_'));
+        const scores=grp.map(r=>fkey&&typeof r[fkey]==='number'?r[fkey]:null).filter(v=>v!==null);
         return scores.length?(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1):'-';
       });
       return [`<span style="font-size:11px;color:#6B6A66;">${TONE_LABELS[ni]}</span>`, ...vals];
@@ -850,6 +852,7 @@ function renderResponses(el,rs){
       </div>
       <div class="resp-detail">
         ${r['03_age']||''} · ${r['04_appUsage']||''} · 알림 ${r['05_notifOnOff']||''} · ${r['07_openRate']||''}
+        ${r['09_pickedNotif']?`<br>✓ 선택: ${r['09_pickedNotif']}`:''}
         ${r['32_interviewContact']?`<br>📞 ${r['32_interviewContact']}`:''}
         ${r['33_eventContact']?`<br>🎁 ${r['33_eventContact']}`:''}
         ${r['08_freeOpinion']?`<br>💬 "${r['08_freeOpinion']}"`:''}
