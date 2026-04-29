@@ -439,8 +439,8 @@ function makeLikerts(container, ansObj, onUpdate){
 let _db = null;
 async function getDb(){
   if(_db) return _db;
-  const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js');
-  const { getFirestore, collection, addDoc, getDocs } = await import('https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js');
+  const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+  const { getFirestore, collection, addDoc, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
   const app = getApps().length ? getApps()[0] : initializeApp({
     apiKey:     FB_API_KEY,
     projectId:  FB_PROJECT,
@@ -784,8 +784,8 @@ function renderResearcher(){
   const rs=allResponses;
   const today=new Date().toISOString().slice(0,10);
   document.getElementById('r-total').textContent=rs.length;
-  document.getElementById('r-interview').textContent=rs.filter(r=>r.interviewWilling==='예').length;
-  document.getElementById('r-today').textContent=rs.filter(r=>(r.submittedAt||'').slice(0,10)===today).length;
+  document.getElementById('r-interview').textContent=rs.filter(r=>r['31_interviewWilling']==='예').length;
+  document.getElementById('r-today').textContent=rs.filter(r=>(r['00_submittedAt']||'').slice(0,10)===today).length;
   const el=document.getElementById('r-content'); el.innerHTML='';
   if(currentTab==='overview') renderOverview(el,rs);
   else if(currentTab==='situation') renderSituation(el,rs);
@@ -803,29 +803,29 @@ function renderOverview(el,rs){
   const sitLbl={A:'세일',B:'배송+리뷰',C:'출석체크',D:'상품추천'};
   addLabel(el,'상황 배정 분포');
   addTable(el,['상황','응답 수','비율'],
-    ['A','B','C','D'].map(k=>{ const n=rs.filter(r=>r.assignedSituation===k).length; return [`<span class="sit-badge sit-${k}">${k} ${sitLbl[k]}</span>`,`${n}명`,bar(n,rs.length)]; }));
+    ['A','B','C','D'].map(k=>{ const n=rs.filter(r=>r['01_assignedSituation']===k).length; return [`<span class="sit-badge sit-${k}">${k} ${sitLbl[k]}</span>`,`${n}명`,bar(n,rs.length)]; }));
   addLabel(el,'연령대');
   addTable(el,['연령대','응답 수','비율'],
-    ['10대','20대','30대'].map(a=>{ const n=rs.filter(r=>r.age===a).length; return [a,`${n}명`,bar(n,rs.length)]; }));
+    ['10대','20대','30대'].map(a=>{ const n=rs.filter(r=>r['03_age']===a).length; return [a,`${n}명`,bar(n,rs.length)]; }));
   addLabel(el,'푸시 알림 설정 현황');
   addTable(el,['상태','응답 수','비율'],
-    ['대부분 켜둠','일부 앱만 켜둠','거의 꺼둠','잘 모름'].map(o=>{ const n=rs.filter(r=>r.notifOnOff===o).length; return [o,`${n}명`,bar(n,rs.length)]; }));
+    ['대부분 켜둠','일부 앱만 켜둠','거의 꺼둠','잘 모름'].map(o=>{ const n=rs.filter(r=>r['05_notifOnOff']===o).length; return [o,`${n}명`,bar(n,rs.length)]; }));
   addLabel(el,'알림 열람 빈도');
   addTable(el,['빈도','응답 수','비율'],
-    ['모두','대부분','종종','거의 안 함','전혀 안 함'].map(o=>{ const n=rs.filter(r=>r.openRate===o).length; return [o,`${n}명`,bar(n,rs.length)]; }));
+    ['모두','대부분','종종','거의 안 함','전혀 안 함'].map(o=>{ const n=rs.filter(r=>r['07_openRate']===o).length; return [o,`${n}명`,bar(n,rs.length)]; }));
 }
 function renderSituation(el,rs){
   if(!rs.length){ el.innerHTML='<div class="empty-state">아직 응답이 없습니다.</div>'; return; }
   const sitLbl={A:'세일',B:'배송+리뷰',C:'출석체크',D:'상품추천'};
   const qShort=['불쾌↓','긍정↑','만족↑','지속↑','재방↑','추천↑'];
   ['A','B','C','D'].forEach(k=>{
-    const grp=rs.filter(r=>r.assignedSituation===k);
+    const grp=rs.filter(r=>r['01_assignedSituation']===k);
     if(!grp.length) return;
     addLabel(el,`상황 ${k} — ${sitLbl[k]} (${grp.length}명)`);
     const rows=[0,1,2].map(ni=>{
       const key='notif'+ni;
       const vals=LIKERT_QS.map(q=>{
-        const scores=grp.map(r=>r[key]&&typeof r[key][q.id]==='number'?r[key][q.id]:null).filter(v=>v!==null);
+        const scores=grp.map(r=>r['notif'+ni]&&typeof r['notif'+ni][q.id]==='number'?r['notif'+ni][q.id]:null).filter(v=>v!==null);
         return scores.length?(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1):'-';
       });
       return [`<span style="font-size:11px;color:#6B6A66;">${TONE_LABELS[ni]}</span>`, ...vals];
@@ -837,22 +837,22 @@ function renderSituation(el,rs){
 function renderResponses(el,rs){
   if(!rs.length){ el.innerHTML='<div class="empty-state">아직 응답이 없습니다.</div>'; return; }
   const sitLbl={A:'세일',B:'배송+리뷰',C:'출석체크',D:'상품추천'};
-  [...rs].sort((a,b)=>(b.submittedAt||'').localeCompare(a.submittedAt||'')).forEach((r,i)=>{
+  [...rs].sort((a,b)=>(b['00_submittedAt']||'').localeCompare(a['00_submittedAt']||'')).forEach((r,i)=>{
     const item=document.createElement('div'); item.className='resp-item';
-    const date=r.submittedAt?new Date(r.submittedAt).toLocaleString('ko-KR'):'-';
-    const k=r.assignedSituation||'?';
+    const date=r['00_submittedAt']?new Date(r['00_submittedAt']).toLocaleString('ko-KR'):'-';
+    const k=r['01_assignedSituation']||'?';
     item.innerHTML=`
       <div class="resp-meta">
         <strong style="font-size:13px;">#${rs.length-i}</strong>
         <span class="sit-badge sit-${k}">${k} ${sitLbl[k]||''}</span>
         <span style="font-size:11px;color:#A09E98;">${date}</span>
-        ${r.interviewWilling==='예'?'<span style="font-size:11px;padding:2px 8px;border-radius:99px;background:#E1F5EE;color:#0F6E56;font-weight:700;">인터뷰 동의</span>':''}
+        ${r['31_interviewWilling']==='예'?'<span style="font-size:11px;padding:2px 8px;border-radius:99px;background:#E1F5EE;color:#0F6E56;font-weight:700;">인터뷰 동의</span>':''}
       </div>
       <div class="resp-detail">
-        ${r.age||''} · ${r.appUsage||''} · 알림 ${r.notifOnOff||''} · ${r.openRate||''}
-        ${r.interviewContact?`<br>📞 ${r.interviewContact}`:''}
-        ${r.eventContact?`<br>🎁 ${r.eventContact}`:''}
-        ${r.freeOpinion?`<br>💬 "${r.freeOpinion}"`:''}
+        ${r['03_age']||''} · ${r['04_appUsage']||''} · 알림 ${r['05_notifOnOff']||''} · ${r['07_openRate']||''}
+        ${r['32_interviewContact']?`<br>📞 ${r['32_interviewContact']}`:''}
+        ${r['33_eventContact']?`<br>🎁 ${r['33_eventContact']}`:''}
+        ${r['08_freeOpinion']?`<br>💬 "${r['08_freeOpinion']}"`:''}
       </div>`;
     el.appendChild(item);
   });
